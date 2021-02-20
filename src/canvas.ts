@@ -1,14 +1,22 @@
 import axios, { AxiosInstance } from "axios";
 import ICanvas from "./models/icanvas";
-import { Announcement } from "./models/types";
-
+import { AnnonceType, Announcement } from "./models/types";
+import Turndown from "turndown";
 export default class Canvas implements ICanvas {
 	server: AxiosInstance;
 	courses: { [x: string]: string };
 
+	cache: {
+		announcements: number[];
+	};
+
 	constructor(token: string) {
 		this.server = this.initServer(token);
 		this.courses = {};
+
+		this.cache = {
+			announcements: [],
+		};
 	}
 
 	initServer(token: string) {
@@ -23,6 +31,8 @@ export default class Canvas implements ICanvas {
 	}
 
 	async getCourseAnnouncements(courseName: string) {
+		const turndownService = new Turndown();
+
 		return this.server
 			.get<any[]>(`announcements`, {
 				params: {
@@ -30,32 +40,43 @@ export default class Canvas implements ICanvas {
 				},
 			})
 			.then((response) => {
-				return response.data.map<Announcement>(d=>({
-					id:d.id,
-					author:d.author.display_name,
-					date:new Date(d.posted_at),
-					message:d.message,
-					title:d.title,
-					url:d.url,
-					module:courseName,
-				}));
-			})
-
+				return response.data
+					.map<Announcement>((d) => ({
+						id: d.id,
+						author: d.author.display_name,
+						date: new Date(d.posted_at),
+						message: turndownService.turndown(d.message),
+						title: d.title,
+						url: d.url,
+						module: courseName,
+						type: this.getAnnouncementType(d.title, d.message),
+					}))
+					.filter(({ id }) => !this.cache.announcements.includes(id))
+					.map((announce) => {
+						this.cache.announcements.push(announce.id);
+						return announce;
+					});
+			});
 	}
-	
-	getAnnouncements(){
+
+	getAnnouncementType(title: string, content: string) {
+		if (title.includes("zoom") || content.includes("zoom"))
+			return AnnonceType.ZOOM;
+
+		return AnnonceType.NONE;
+	}
+
+	getAnnouncements() {
 		//TODO get announcements from all avaliable courses
 		return Promise.resolve([]);
-	};
-
-	
+	}
 
 	async fetchCourses() {
-		return this.server.get("courses").then(response=>{
+		return this.server.get("courses").then((response) => {
 			return;
 		});
 	}
-	
+
 	async ping() {
 		const request = await axios.get(
 			"https://jsonplaceholder.typicode.com/todos/1"

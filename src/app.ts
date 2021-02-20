@@ -2,6 +2,7 @@ import IApp from "./models/iapp";
 import IBot from "./models/ibot";
 import ICanvas from "./models/icanvas";
 import IFirestore from "./models/ifirestore";
+import { AnnonceType } from "./models/types";
 
 export default class App implements IApp {
 	db: IFirestore;
@@ -9,46 +10,41 @@ export default class App implements IApp {
 	checkTimer?: NodeJS.Timeout;
 	bot: IBot;
 
-	constructor(
-		db: IFirestore,
-		canvas: ICanvas,
-		bot: IBot,
-		periodicCheck = 10 * 1000
-	) {
+	constructor(db: IFirestore, canvas: ICanvas, bot: IBot) {
 		this.db = db;
 		this.canvas = canvas;
-        this.bot = bot;
-
-		this.init().then(() => {
-			this.checkTimer = setInterval(this.check.bind(this), periodicCheck);
-		});
+		this.bot = bot;
 	}
 
 	async init() {
 		this.canvas.addCourse("archi", "2450996");
 		this.canvas.addCourse("tgh", "2516861");
 
-		this.bot.addChannel("thg-zoom", 155112);
-		this.bot.addChannel("archi-zoom", 152112);
-		this.bot.addChannel("general", 155223);
+		await this.bot.initIvents();
 
+		await this.bot.addChannel("archi", "809726204726870036");
 		return Promise.resolve();
 	}
 
-	run() {
+	async run(periodicCheck: number = 60 * 1000) {
+		await this.init();
+		this.checkTimer = setInterval(this.check.bind(this), periodicCheck);
+	}
+
+	check() {
 		this.verifyAndPostAnnouncements();
 	}
 
-	check() {}
-
 	verifyAndPostAnnouncements() {
 		this.canvas.getCourseAnnouncements("archi").then((announcements) => {
-			announcements.forEach(async  (announce) => {
-				if (await this.db.isNewAnnouncement(announce.id)) {
-					this.bot.postToChannel("archi-zoom", announce.message);
-                    this.db.addAnnouncement(announce);
-                }
-			});
+			announcements
+				.filter(({ type }) => type == AnnonceType.ZOOM)
+				.forEach(async (announce) => {
+					if (await this.db.isNewAnnouncement(announce.id)) {
+						this.bot.postToChannel("archi", announce);
+						this.db.addAnnouncement(announce);
+					}
+				});
 		});
 	}
 }

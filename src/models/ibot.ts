@@ -1,10 +1,14 @@
+import discord from "discord.js";
+import { Announcement } from "./types";
+
 export default interface IBot {
-	token: string;
-    channels: { name: string; id: number }[];
+    channels: { [key: string]: discord.TextChannel };
     
-    addChannel:(name:string,id:number)=>void;
+	server: discord.Client;
 
-    postToChannel:(channel:string,content:string)=>Promise<void>;
+	addChannel: (name: string, id: string) => void;
 
+    postToChannel: (channel: string, announce: Announcement) => Promise<void>;
+    initIvents:()=>Promise<void>;
     
 }

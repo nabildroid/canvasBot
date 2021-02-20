@@ -1,5 +1,5 @@
 import Canvas from "./canvas";
-import { CANVAS_TOKEN } from "./config";
+import { CANVAS_TOKEN, DISCORD_TOKEN } from "./config";
 import admin from "firebase-admin";
 import Firestore from "./firestore";
 import App from "./app";
@@ -14,7 +14,7 @@ admin.initializeApp({
 const app = new App(
 	new Firestore(admin.firestore()),
 	new Canvas(CANVAS_TOKEN),
-	new Bot("botToken")
+	new Bot(DISCORD_TOKEN)
 );
 
 app.run();
