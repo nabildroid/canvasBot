@@ -28,23 +28,27 @@ export default class App implements IApp {
 		this.canvas.addCourse("archi", "2450996");
 		this.canvas.addCourse("tgh", "2516861");
 
-        this.bot.addChannel("thg-zoom",155112);
-        this.bot.addChannel("archi-zoom",152112);
-        this.bot.addChannel("general",155223);
+		this.bot.addChannel("thg-zoom", 155112);
+		this.bot.addChannel("archi-zoom", 152112);
+		this.bot.addChannel("general", 155223);
 
 		return Promise.resolve();
 	}
 
-	run() {}
+	run() {
+		this.verifyAndPostAnnouncements();
+	}
 
-	check() {
-        this.canvas.getCourseAnnouncements("archi").then(announcements=>{
-            announcements.forEach(announce=>{
-                if(this.db.isNewAnnouncement(announce.id)){
-                    this.bot.postToChannel("archi-zoom",announce.message);
+	check() {}
+
+	verifyAndPostAnnouncements() {
+		this.canvas.getCourseAnnouncements("archi").then((announcements) => {
+			announcements.forEach(async  (announce) => {
+				if (await this.db.isNewAnnouncement(announce.id)) {
+					this.bot.postToChannel("archi-zoom", announce.message);
                     this.db.addAnnouncement(announce);
                 }
-            })
-        })
+			});
+		});
 	}
 }
