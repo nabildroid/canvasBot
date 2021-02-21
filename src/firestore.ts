@@ -12,7 +12,7 @@ export default class Firestore implements IFirestore {
     }
     
 	async isNewAnnouncement(id: number) {
-        const query = this.db.collection("announcements").where("id","!=",id);
+        const query = this.db.collection("announcements").where("id","==",id);
         const data =await query.get();
         return data.empty
     }

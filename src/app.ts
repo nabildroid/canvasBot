@@ -35,16 +35,22 @@ export default class App implements IApp {
 		this.verifyAndPostAnnouncements();
 	}
 
-	verifyAndPostAnnouncements() {
-		this.canvas.getCourseAnnouncements("archi").then((announcements) => {
-			announcements
-				.filter(({ type }) => type == AnnonceType.ZOOM)
-				.forEach(async (announce) => {
-					if (await this.db.isNewAnnouncement(announce.id)) {
+	async verifyAndPostAnnouncements() {
+		const announces = await this.canvas.getCourseAnnouncements("archi");
+		const zoomAnnounces = announces.filter(
+			({ type }) => type == AnnonceType.ZOOM
+		);
+
+		await Promise.all(
+			zoomAnnounces.map(async (announce) => {
+				const notExists = await this.db.isNewAnnouncement(announce.id);
+				console.log(`announce #${announce.id} ${notExists?"not exists":"exist"}`)
+
+				if (notExists) {
 						this.bot.postToChannel("archi", announce);
 						this.db.addAnnouncement(announce);
 					}
-				});
-		});
+			})
+		);
 	}
 }
