@@ -35,14 +35,23 @@ export default class Bot implements IBot {
 		}
 	}
 
-	async postAnnounce(channelName: string, announce: Announcement) {
+	async postAnnounce(
+		channelName: string,
+		announce: Announcement,
+		pin = false
+	) {
 		const embed = this.createEmbedAnnounce(announce);
 		const mentions = this.getMentions(announce.message).reduce(
 			(acc, v) => acc + " " + v,
 			""
 		);
 
-		await this.postToChannel(channelName, mentions, { embed });
+		const message = await this.postToChannel(channelName, mentions, {
+			embed,
+		});
+		await message.pin();
+
+		return message.id;
 	}
 
 	async postToChannel(
@@ -50,12 +59,26 @@ export default class Bot implements IBot {
 		message: string,
 		options: MessageOptions = {}
 	) {
+		const channel = this.getChannel(channelName);
+
+		const sentMessage = await channel.send(message, options);
+		return sentMessage as discord.Message;
+	}
+
+	async unpin(id: string, channelName: string, remove = false) {
+		const channel = this.getChannel(channelName);
+		const message = await channel.messages.fetch(id);
+		await message.unpin();
+
+		if(remove)
+			await message.delete();
+	}
+
+	getChannel(channelName: string) {
 		if (!this.channels[channelName])
 			throw Error(`please add ${channelName} to the bot object`);
 
-		const channel = this.channels[channelName];
-
-		await channel.send(message, options);
+		return this.channels[channelName];
 	}
 
 	createEmbedAnnounce(announce: Announcement) {

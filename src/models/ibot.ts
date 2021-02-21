@@ -8,12 +8,15 @@ export default interface IBot {
 		channel: string,
 		message: string,
 		options?: MessageOptions
-	) => Promise<void>;
+	) => Promise<discord.Message>;
 
 	postAnnounce: (
 		channelName: string,
-		announce: Announcement
-    ) => Promise<void>;
-    
+		announce: Announcement,
+		pin?: boolean
+	) => Promise<string>;
+
+	unpin: (id: string, channelName: string, remove?: boolean) => Promise<void>;
+
 	init: () => Promise<void>;
 }

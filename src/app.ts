@@ -3,6 +3,7 @@ import IBot from "./models/ibot";
 import ICanvas from "./models/icanvas";
 import IFirestore from "./models/ifirestore";
 import { AnnonceType } from "./models/types";
+import { extractTimeFromText } from "./utils";
 
 export default class App implements IApp {
 	db: IFirestore;
@@ -16,6 +17,11 @@ export default class App implements IApp {
 		this.bot = bot;
 	}
 
+	async run(periodicCheck: number = 10 * 1000) {
+		await this.init();
+		this.checkTimer = setInterval(this.check.bind(this), periodicCheck);
+	}
+
 	async init() {
 		this.canvas.addCourse("archi", "2450996");
 		this.canvas.addCourse("tgh", "2516861");
@@ -26,13 +32,16 @@ export default class App implements IApp {
 		return Promise.resolve();
 	}
 
-	async run(periodicCheck: number = 60 * 1000) {
-		await this.init();
-		this.checkTimer = setInterval(this.check.bind(this), periodicCheck);
-	}
-
 	check() {
 		this.verifyAndPostAnnouncements();
+		this.deleteExpiredPins();
+	}
+
+	async deleteExpiredPins() {
+		const pins = await this.db.deleteExpiredPins();
+		pins.forEach(({ id, module }) => {
+			this.bot.unpin(id, module, true);
+		});
 	}
 
 	async verifyAndPostAnnouncements() {
@@ -41,20 +50,35 @@ export default class App implements IApp {
 			({ type }) => type == AnnonceType.ZOOM
 		);
 
-		await Promise.all(
-			zoomAnnounces.map(async (announce) => {
-				const notExists = await this.db.isNewAnnouncement(announce.id);
-				console.log(
-					`announce #${announce.id} ${
-						notExists ? "not exists" : "exist"
-					}`
+		zoomAnnounces.forEach(async (announce) => {
+			const notExists = await this.db.isNewAnnouncement(announce.id);
+			console.log(
+				`announce #${announce.id} ${notExists ? "not exists" : "exist"}`
+			);
+
+			if (notExists) {
+				const prevAnnounces = await this.db.unpin(
+					"module",
+					announce.module
+				);
+				await Promise.all(
+					prevAnnounces.map(({ id }) =>
+						this.bot.unpin(id, announce.module, true)
+					)
+				);
+				const postId = await this.bot.postAnnounce(
+					"archi",
+					announce,
+					true
 				);
 
-				if (notExists) {
-					this.bot.postAnnounce("archi", announce);
-					this.db.addAnnouncement(announce);
-				}
-			})
-		);
+				await this.db.addAnnouncement(announce);
+
+				const time =
+					extractTimeFromText(announce.message) ||
+					1000 * 60 * 60 * 24 * 2;
+				await this.db.pin(postId, "archi", time);
+			}
+		});
 	}
 }
