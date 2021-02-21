@@ -20,7 +20,7 @@ export default class App implements IApp {
 		this.canvas.addCourse("archi", "2450996");
 		this.canvas.addCourse("tgh", "2516861");
 
-		await this.bot.initIvents();
+		await this.bot.init();
 
 		await this.bot.addChannel("archi", "809726204726870036");
 		return Promise.resolve();
@@ -36,7 +36,7 @@ export default class App implements IApp {
 	}
 
 	async verifyAndPostAnnouncements() {
-		const announces = await this.canvas.getCourseAnnouncements("archi");
+		const announces = await this.canvas.getAnnouncements();
 		const zoomAnnounces = announces.filter(
 			({ type }) => type == AnnonceType.ZOOM
 		);
@@ -44,12 +44,16 @@ export default class App implements IApp {
 		await Promise.all(
 			zoomAnnounces.map(async (announce) => {
 				const notExists = await this.db.isNewAnnouncement(announce.id);
-				console.log(`announce #${announce.id} ${notExists?"not exists":"exist"}`)
+				console.log(
+					`announce #${announce.id} ${
+						notExists ? "not exists" : "exist"
+					}`
+				);
 
 				if (notExists) {
-						this.bot.postToChannel("archi", announce);
-						this.db.addAnnouncement(announce);
-					}
+					this.bot.postAnnounce("archi", announce);
+					this.db.addAnnouncement(announce);
+				}
 			})
 		);
 	}
