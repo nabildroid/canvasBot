@@ -24,11 +24,12 @@ export default class App implements IApp {
 
 	async init() {
 		this.canvas.addCourse("archi", "2450996");
-		this.canvas.addCourse("tgh", "2516861");
+		this.canvas.addCourse("thg", "2516861");
 
 		await this.bot.init();
 
-		await this.bot.addChannel("archi", "809726204726870036");
+		await this.bot.addChannel("thg", "809893163480776724");
+		await this.bot.addChannel("archi", "809893163480776724");
 		return Promise.resolve();
 	}
 
@@ -46,30 +47,31 @@ export default class App implements IApp {
 
 	async verifyAndPostAnnouncements() {
 		const announces = await this.canvas.getAnnouncements();
-		const zoomAnnounces = announces.filter(
-			({ type }) => type == AnnonceType.ZOOM
-		);
 
-		zoomAnnounces.forEach(async (announce) => {
+		announces.forEach(async (announce) => {
 			const notExists = await this.db.isNewAnnouncement(announce.id);
 			console.log(
 				`announce #${announce.id} ${notExists ? "not exists" : "exist"}`
 			);
 
 			if (notExists) {
-				const prevAnnounces = await this.db.unpin(
-					"module",
-					announce.module
-				);
-				await Promise.all(
-					prevAnnounces.map(({ id }) =>
-						this.bot.unpin(id, announce.module, true)
-					)
-				);
+				const isZoom = announce.type == AnnonceType.ZOOM;
+				if (isZoom) {
+					const prevAnnounces = await this.db.unpin(
+						"module",
+						announce.module
+					);
+					await Promise.all(
+						prevAnnounces.map(({ id }) =>
+							this.bot.unpin(id, announce.module, true)
+						)
+					);
+				}
+
 				const postId = await this.bot.postAnnounce(
-					"archi",
+					announce.module,
 					announce,
-					true
+					isZoom
 				);
 
 				await this.db.addAnnouncement(announce);
@@ -77,7 +79,10 @@ export default class App implements IApp {
 				const time =
 					extractTimeFromText(announce.message) ||
 					1000 * 60 * 60 * 24 * 2;
-				await this.db.pin(postId, "archi", time);
+
+				if (isZoom) {
+					await this.db.pin(postId, announce.module, time);
+				}
 			}
 		});
 	}

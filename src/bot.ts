@@ -1,6 +1,6 @@
 import IBot from "./models/ibot";
 import discord, { MessageOptions } from "discord.js";
-import { Announcement, Mention } from "./models/types";
+import { AnnonceType, Announcement, Mention } from "./models/types";
 
 export default class Bot implements IBot {
 	server: discord.Client;
@@ -41,6 +41,11 @@ export default class Bot implements IBot {
 		pin = false
 	) {
 		const embed = this.createEmbedAnnounce(announce);
+		if (announce.type == AnnonceType.ZOOM) {
+			embed.setColor("#0099ff");
+			embed.setThumbnail("https://www.algonquincollege.com/corporate/files/2020/06/zoom-logo.png");
+		}
+
 		const mentions = this.getMentions(announce.message).reduce(
 			(acc, v) => acc + " " + v,
 			""
@@ -49,7 +54,8 @@ export default class Bot implements IBot {
 		const message = await this.postToChannel(channelName, mentions, {
 			embed,
 		});
-		await message.pin();
+
+		if (pin) await message.pin();
 
 		return message.id;
 	}
@@ -70,8 +76,7 @@ export default class Bot implements IBot {
 		const message = await channel.messages.fetch(id);
 		await message.unpin();
 
-		if(remove)
-			await message.delete();
+		if (remove) await message.delete();
 	}
 
 	getChannel(channelName: string) {
