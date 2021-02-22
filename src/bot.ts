@@ -43,13 +43,14 @@ export default class Bot implements IBot {
 		const embed = this.createEmbedAnnounce(announce);
 		if (announce.type == AnnonceType.ZOOM) {
 			embed.setColor("#0099ff");
-			embed.setThumbnail("https://www.algonquincollege.com/corporate/files/2020/06/zoom-logo.png");
+			embed.setThumbnail(
+				"https://www.algonquincollege.com/corporate/files/2020/06/zoom-logo.png"
+			);
 		}
 
-		const mentions = this.getMentions(announce.message).reduce(
-			(acc, v) => acc + " " + v,
-			""
-		);
+		const mentions = this.getMentions(
+			announce.message + announce.title
+		).reduce((acc, v) => acc + " " + v, "");
 
 		const message = await this.postToChannel(channelName, mentions, {
 			embed,
@@ -99,16 +100,64 @@ export default class Bot implements IBot {
 	getMentions(text: string): Mention[] {
 		const mentions: Mention[] = [];
 		const find: { [key in Mention]: string[] } = {
-			[Mention.GRP1]: ["group1", "group 1", "g1", "g 1", "grp1"],
-			[Mention.GRP2]: ["group2", "group 2", "g2", "g 2", "grp2"],
-			[Mention.GRP3]: ["group3", "group 3", "g3", "g 3", "grp3"],
-			[Mention.GRP4]: ["group4", "group 4", "g4", "g 4", "grp4"],
+			[Mention.GRP1]: [
+				"group1",
+				"group 1",
+				"g1",
+				"g 1",
+				"g01",
+				"g 01",
+				"gr 1",
+				"grp1",
+				"grp 1",
+				"grp01",
+				"grp 01",
+			],
+			[Mention.GRP2]: [
+				"group2",
+				"group 2",
+				"g2",
+				"g 2",
+				"g02",
+				"g 02",
+				"gr 2",
+				"grp2",
+				"grp 2",
+				"grp02",
+				"grp 02",
+			],
+			[Mention.GRP3]: [
+				"group3",
+				"group 3",
+				"g3",
+				"g 3",
+				"g03",
+				"g 03",
+				"gr 3",
+				"grp3",
+				"grp 3",
+				"grp03",
+				"grp 03",
+			],
+			[Mention.GRP4]: [
+				"group4",
+				"group 4",
+				"g4",
+				"g 4",
+				"g04",
+				"g 04",
+				"gr 4",
+				"grp4",
+				"grp 4",
+				"grp04",
+				"grp 04",
+			],
 			[Mention.ALL]: [],
 		};
 
 		Object.entries(find).forEach(([k, v]) => {
 			v.findIndex((val) => {
-				if (text.includes(val)) {
+				if (text.toLowerCase().includes(val)) {
 					mentions.push((k as unknown) as Mention);
 					return true;
 				}
